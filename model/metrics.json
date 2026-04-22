@@ -1,0 +1,86 @@
+{
+  "model_name": "Logistic Regression",
+  "accuracy": 99.5,
+  "model_comparison": {
+    "Random Forest": 99.0,
+    "Logistic Regression": 99.5
+  },
+  "confusion_matrix": [
+    [
+      50,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      49,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      50,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      50
+    ]
+  ],
+  "class_labels": [
+    "Calm",
+    "Energetic",
+    "Happy",
+    "Sad"
+  ],
+  "classification_report": {
+    "Calm": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "Energetic": {
+      "precision": 1.0,
+      "recall": 0.98,
+      "f1-score": 0.98989898989899,
+      "support": 50.0
+    },
+    "Happy": {
+      "precision": 0.9803921568627451,
+      "recall": 1.0,
+      "f1-score": 0.9900990099009901,
+      "support": 50.0
+    },
+    "Sad": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "accuracy": 0.995,
+    "macro avg": {
+      "precision": 0.9950980392156863,
+      "recall": 0.995,
+      "f1-score": 0.994999499949995,
+      "support": 200.0
+    },
+    "weighted avg": {
+      "precision": 0.9950980392156862,
+      "recall": 0.995,
+      "f1-score": 0.9949994999499949,
+      "support": 200.0
+    }
+  },
+  "feature_importances": {},
+  "mood_distribution": {
+    "Energetic": 250,
+    "Sad": 250,
+    "Calm": 250,
+    "Happy": 250
+  }
+}
