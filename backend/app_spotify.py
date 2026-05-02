@@ -59,32 +59,22 @@ FEATURES = ["valence", "energy", "danceability", "tempo", "acousticness", "loudn
 # These seed the Spotify Recommendations API with ideal target values
 MOOD_SEEDS = {
     "Happy": {
-        "seed_genres": ["pop", "dance", "happy"],
-        "target_valence": 0.85, "min_valence": 0.6,
-        "target_energy":  0.80, "min_energy":  0.6,
-        "target_danceability": 0.75,
-        "target_tempo": 120,
+        "seed_genres": ["pop"],
+        "target_valence": 0.8,
+        "target_energy": 0.7
     },
     "Sad": {
         "seed_genres": ["acoustic"],
-        "target_valence": 0.20, "max_valence": 0.4,
-        "target_energy":  0.25, "max_energy":  0.45,
-        "target_acousticness": 0.70,
-        "target_tempo": 80,
+        "target_valence": 0.3,
+        "target_energy": 0.3
     },
     "Energetic": {
-        "seed_genres": ["work-out", "hip-hop", "rock"],
-        "target_energy":  0.92, "min_energy":  0.75,
-        "target_tempo":   150,  "min_tempo":   120,
-        "target_danceability": 0.80,
-        "min_loudness": -6,
+        "seed_genres": ["edm"],
+        "target_energy": 0.9
     },
     "Calm": {
-        "seed_genres": ["ambient", "classical", "chill"],
-        "target_energy":  0.18, "max_energy":  0.35,
-        "target_valence": 0.45,
-        "target_acousticness": 0.80,
-        "target_tempo": 70,
+        "seed_genres": ["ambient"],
+        "target_acousticness": 0.8
     },
 }
 
