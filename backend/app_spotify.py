@@ -15,11 +15,9 @@ from flask import Flask, jsonify, request, redirect, session, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
+from spotipy.oauth2 import SpotifyClientCredentials
 
 load_dotenv()
-print("CLIENT ID:", os.getenv("SPOTIFY_CLIENT_ID"))
-print("CLIENT SECRET:", os.getenv("SPOTIFY_CLIENT_SECRET"))
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -142,30 +140,28 @@ def recommend():
     if mood not in MOOD_SEEDS:
         return jsonify({"error": f"Unknown mood '{mood}'. Choose: {list(MOOD_SEEDS.keys())}"}), 400
 
-    params = {**MOOD_SEEDS[mood], "limit": min(limit, 50)}
+    genres = MOOD_SEEDS[mood]["seed_genres"]
+    limit = min(limit, 50)
 
-    #fix incorrected format of seed_genres, which should be a list not a string
+    try:
+        recs = sp.recommendations(
+            seed_genres=genres,
+            limit=limit
+        )
 
-    if isinstance(params.get("seed_genres"), str):
-        params["seed_genres"] = params["seed_genres"].split(",")
+        track_ids = [t["id"] for t in recs["tracks"]]
+        af_map    = get_audio_features_bulk(track_ids)
 
-    print("FINAL PARAMS:", params)
+        songs = [
+            format_track(t, af_map.get(t["id"], {}), mood)
+            for t in recs["tracks"]
+        ]
 
-    recs = sp.recommendations(
-    seed_genres=params["seed_genres"],
-    limit=params["limit"]
-)
+        return jsonify({"mood": mood, "count": len(songs), "songs": songs})
 
-
-    track_ids = [t["id"] for t in recs["tracks"]]
-    af_map    = get_audio_features_bulk(track_ids)
-
-    songs = [
-        format_track(t, af_map.get(t["id"], {}), mood)
-        for t in recs["tracks"]
-    ]
-
-    return jsonify({"mood": mood, "count": len(songs), "songs": songs})
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/search", methods=["GET"])
