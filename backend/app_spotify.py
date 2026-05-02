@@ -70,7 +70,7 @@ MOOD_SEEDS = {
         "seed_genres": ["edm"],
     },
     "Calm": {
-        "seed_genres": ["ambient"],
+        "seed_genres": ["classical"],
     },
 }
 
