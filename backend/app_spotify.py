@@ -6,8 +6,8 @@ Requires:
   pip install flask flask-cors spotipy python-dotenv scikit-learn pandas numpy
 
 Set environment variables (or create a .env file):
-  SPOTIFY_CLIENT_ID=your_client_id
-  SPOTIFY_CLIENT_SECRET=your_client_secret
+  SPOTIFY_CLIENT_ID=d08df51fc4c04646b10bc36f1a3b19cd
+  SPOTIFY_CLIENT_SECRET=8b22349604bc499a89139e7fdef6acb6
 """
 import os, json, pickle
 import numpy as np
@@ -18,6 +18,8 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 load_dotenv()
+print("CLIENT ID:", os.getenv("SPOTIFY_CLIENT_ID"))
+print("CLIENT SECRET:", os.getenv("SPOTIFY_CLIENT_SECRET"))
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -25,8 +27,8 @@ CORS(app, supports_credentials=True)
 
 # ── Spotify client (Client Credentials – no user login needed) ────────────────
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
-    client_id=os.environ["SPOTIFY_CLIENT_ID"],
-    client_secret=os.environ["SPOTIFY_CLIENT_SECRET"],
+    client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
 ))
 
 # ── Load our trained ML model ─────────────────────────────────────────────────
