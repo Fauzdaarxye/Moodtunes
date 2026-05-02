@@ -60,21 +60,17 @@ FEATURES = ["valence", "energy", "danceability", "tempo", "acousticness", "loudn
 MOOD_SEEDS = {
     "Happy": {
         "seed_genres": ["pop"],
-        "target_valence": 0.8,
-        "target_energy": 0.7
+       
     },
     "Sad": {
         "seed_genres": ["acoustic"],
-        "target_valence": 0.3,
-        "target_energy": 0.3
+       
     },
     "Energetic": {
         "seed_genres": ["edm"],
-        "target_energy": 0.9
     },
     "Calm": {
         "seed_genres": ["ambient"],
-        "target_acousticness": 0.8
     },
 }
 
@@ -154,7 +150,11 @@ def recommend():
         params["seed_genres"] = params["seed_genres"].split(",")
 
     print("FINAL PARAMS:", params)
-    recs   = sp.recommendations(**params)
+
+    recs = sp.recommendations(
+    seed_genres=params["seed_genres"],
+    limit=params["limit"]
+)
 
 
     track_ids = [t["id"] for t in recs["tracks"]]
