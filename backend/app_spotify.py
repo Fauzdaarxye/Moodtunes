@@ -66,7 +66,7 @@ MOOD_SEEDS = {
         "target_tempo": 120,
     },
     "Sad": {
-        "seed_genres": ["sad", "acoustic", "singer-songwriter"],
+        "seed_genres": ["acoustic", "piano"],
         "target_valence": 0.20, "max_valence": 0.4,
         "target_energy":  0.25, "max_energy":  0.45,
         "target_acousticness": 0.70,
