@@ -161,7 +161,7 @@ def recommend():
     #fix incorrected format of seed_genres, which should be a list not a string
 
     if isinstance(params.get("seed_genres"), str):
-    params["seed_genres"] = params["seed_genres"].split(",")
+        params["seed_genres"] = params["seed_genres"].split(",")
 
     print("FINAL PARAMS:", params)
     recs   = sp.recommendations(**params)
