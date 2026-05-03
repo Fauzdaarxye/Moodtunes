@@ -24,10 +24,12 @@ app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
 
 # ── Spotify client (Client Credentials – no user login needed) ────────────────
-sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
-    client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
-))
+sp = spotipy.Spotify(
+    auth_manager=SpotifyClientCredentials(
+        client_id=os.environ.get("SPOTIFY_CLIENT_ID"),
+        client_secret=os.environ.get("SPOTIFY_CLIENT_SECRET")
+    )
+)
 
 # ── Load our trained ML model ─────────────────────────────────────────────────
 BASE  = os.path.dirname(__file__)
