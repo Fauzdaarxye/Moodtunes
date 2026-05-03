@@ -143,11 +143,11 @@ def recommend():
         return jsonify({"error": f"Unknown mood '{mood}'. Choose: {list(MOOD_SEEDS.keys())}"}), 400
 
     genres = MOOD_SEEDS[mood]["seed_genres"]
-    limit = min(limit, 50)
-
-    try:
+genres_str = ",".join(genres)   # 🔥 convert list → string
+limit = min(limit, 50)
+try:
         recs = sp.recommendations(
-            seed_genres=genres,
+            seed_genres=genres_str,  # 🔥 pass string instead of list
             limit=limit
         )
 
