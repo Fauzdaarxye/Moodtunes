@@ -1,199 +1,140 @@
-# 🎵 Moodtunes — AI-Powered Mood-Based Music Recommender
+# 🎵 Moodtunes — Mood-Based Music Recommender
 
-A full-stack machine learning web app that recommends songs based on your current emotional state.
-
----
-
-## 🗂 Project Structure
-
-```
-mood-music/
-├── frontend/               # React + Vite frontend
-│   ├── src/
-│   │   ├── pages/          # HomePage, MoodPage, ResultsPage, AnalyticsPage
-│   │   ├── components/     # Navbar, SongCard
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-│
-├── backend/
-│   ├── app.py              # Flask REST API
-│   ├── requirements.txt
-│   └── spotify_mood_dataset.csv
-│
-├── model/
-│   ├── train_model.py      # ML training script
-│   ├── mood_classifier.pkl # (generated)
-│   ├── scaler.pkl          # (generated)
-│   ├── label_encoder.pkl   # (generated)
-│   └── metrics.json        # (generated)
-│
-├── dataset/
-│   ├── generate_dataset.py
-│   └── spotify_mood_dataset.csv
-│
-├── render.yaml             # Render deployment config
-└── README.md
-```
+ML-powered music recommender using a Random Forest classifier + live Spotify API.
 
 ---
 
-## ⚡ Quick Start (Local)
+## Tech Stack
 
-### Prerequisites
-- Python 3.9+
-- Node.js 18+
+| Layer    | Tech                              |
+|----------|-----------------------------------|
+| Frontend | React 18 + Vite                   |
+| Backend  | Flask + Flask-CORS                |
+| ML       | scikit-learn (Random Forest)      |
+| Music    | Spotify Web API via spotipy       |
+| Deploy   | Backend → Render · Frontend → Vercel |
 
 ---
 
-### Step 1 — Generate Dataset (optional, already included)
+## Local Setup
 
+### 1. Clone & enter project
 ```bash
-cd dataset
-pip install pandas numpy
-python generate_dataset.py
+git clone <your-repo-url>
+cd Moodtunes
 ```
 
----
-
-### Step 2 — Train the ML Model
-
-```bash
-cd model
-pip install scikit-learn pandas numpy
-python train_model.py
-```
-
-Expected output:
-```
-✅ Best model: Logistic Regression (99.5%)
-All artefacts saved to model/
-```
-
----
-
-### Step 3 — Start the Backend
-
+### 2. Backend setup
 ```bash
 cd backend
+cp .env.example .env
+# Edit .env — add your Spotify credentials (https://developer.spotify.com/dashboard)
+
 pip install -r requirements.txt
+
+# Train the ML model (only needed once)
+cd ..
+python dataset/generate_dataset.py
+python model/train_model.py
+cd backend
+
+# Start Flask
 python app.py
+# → running on http://localhost:5000
 ```
 
-Backend runs at: `http://localhost:5000`
-
-**Test it:**
-```bash
-curl "http://localhost:5000/recommend?mood=Happy&limit=5"
-curl "http://localhost:5000/analytics"
-curl "http://localhost:5000/moods"
-```
-
----
-
-### Step 4 — Start the Frontend
-
+### 3. Frontend setup (new terminal)
 ```bash
 cd frontend
 npm install
 npm run dev
+# → running on http://localhost:3000
 ```
 
-Frontend runs at: `http://localhost:3000`
+Open http://localhost:3000 — the Vite proxy forwards `/recommend`, `/analytics` etc. to Flask automatically.
 
 ---
 
-## 🌐 API Endpoints
+## Spotify Credentials
 
-| Method | Endpoint      | Description                              |
-|--------|---------------|------------------------------------------|
-| GET    | `/`           | Health check                             |
-| GET    | `/recommend`  | `?mood=Happy&limit=10` — get songs       |
-| POST   | `/recommend`  | Body: `{"mood":"Calm","limit":8}`        |
-| POST   | `/recommend`  | Body: `{"features":{...}}` — predict    |
-| GET    | `/analytics`  | All chart data + model metrics           |
-| GET    | `/moods`      | List available moods                     |
-| GET    | `/search`     | `?q=adele&mood=Sad` — search songs       |
-| POST   | `/train`      | Retrain model on demand                  |
+1. Go to https://developer.spotify.com/dashboard
+2. Create an app
+3. Copy Client ID and Client Secret into `backend/.env`:
+```
+SPOTIFY_CLIENT_ID=your_id
+SPOTIFY_CLIENT_SECRET=your_secret
+```
+
+> ⚠️ `sp.recommendations()` was **removed by Spotify in November 2024**.  
+> This app uses `sp.search()` + audio-feature filtering instead — no deprecated endpoints.
 
 ---
 
-## 🤖 Machine Learning
-
-### Dataset Features
-| Feature       | Description                          |
-|---------------|--------------------------------------|
-| valence       | Musical positivity (0–1)             |
-| energy        | Intensity and activity (0–1)         |
-| danceability  | How suitable for dancing (0–1)       |
-| tempo         | Beats per minute                     |
-| acousticness  | Acoustic instrument confidence (0–1) |
-| loudness      | Overall loudness in dB               |
-
-### Mood Labelling Rules
-```
-High valence + high energy   → Happy
-Low valence + low energy     → Sad
-High energy + fast tempo     → Energetic
-Low energy + acoustic        → Calm
-```
-
-### Models Evaluated
-- **Logistic Regression** — best performer at ~99.5%
-- **Random Forest** — ~99% accuracy
-
----
-
-## 🚀 Deployment
+## Deploy
 
 ### Backend → Render
+1. Push code to GitHub (backend/.env is gitignored — set env vars in Render dashboard)
+2. Connect repo to Render
+3. Set **Root Directory** = `backend`
+4. **Build command**: `pip install -r requirements.txt && cd .. && python dataset/generate_dataset.py && python model/train_model.py`
+5. **Start command**: `gunicorn app:app --bind 0.0.0.0:$PORT`
+6. Add env vars: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
 
-1. Push code to GitHub
-2. Go to [render.com](https://render.com) → New Web Service
-3. Connect your repo, set Root Dir = `backend`
-4. Build command: `pip install -r requirements.txt && python ../model/train_model.py`
-5. Start command: `gunicorn app:app --bind 0.0.0.0:$PORT`
-
-### Frontend → Vercel / Netlify
-
-1. Go to [vercel.com](https://vercel.com) → New Project
-2. Connect your GitHub repo
-3. Set Root Directory = `frontend`
-4. Add Environment Variable:
-   ```
-   VITE_API_URL = https://your-render-backend.onrender.com
-   ```
-5. Deploy!
+### Frontend → Vercel
+1. Connect repo to Vercel
+2. Set **Root Directory** = `frontend`
+3. Add environment variable: `VITE_API_URL` = `https://your-render-backend.onrender.com`
+4. Deploy
 
 ---
 
-## 📊 Analytics Dashboard Features
+## API Endpoints
 
-- **Mood Distribution** — horizontal bar chart
-- **Model Comparison** — accuracy of RF vs LR
-- **Feature Profile Radar** — per-mood audio feature averages
-- **Confusion Matrix** — heatmap of classification results
-- **Feature Importances** — which features drive predictions most
-
----
-
-## 🛠 Tech Stack
-
-| Layer      | Technology                         |
-|------------|------------------------------------|
-| Frontend   | React 18, Vite, CSS Variables      |
-| Styling    | Custom CSS (Spotify-dark theme)    |
-| Charts     | Pure SVG / CSS                     |
-| Backend    | Python 3, Flask, Flask-CORS        |
-| ML         | scikit-learn, pandas, numpy        |
-| Deploy FE  | Vercel / Netlify                   |
-| Deploy BE  | Render / Railway                   |
+| Method | Endpoint       | Description                          |
+|--------|---------------|--------------------------------------|
+| GET    | `/`           | Health check + model info            |
+| GET    | `/recommend`  | `?mood=Happy&limit=10` → songs       |
+| POST   | `/recommend`  | `{"mood":"Sad","limit":10}`          |
+| GET    | `/search`     | `?q=adele&mood=Sad`                  |
+| POST   | `/classify`   | Predict mood from audio features     |
+| GET    | `/trending`   | Recent popular songs + mood labels   |
+| GET    | `/analytics`  | ML metrics, confusion matrix, etc.   |
+| GET    | `/moods`      | List of available moods              |
 
 ---
 
-## 📝 License
+## Project Structure
 
-MIT — free to use, modify, and distribute.
+```
+Moodtunes/
+├── backend/
+│   ├── app.py              ← Flask API (main entry point)
+│   ├── requirements.txt
+│   ├── runtime.txt
+│   └── .env.example
+├── dataset/
+│   └── generate_dataset.py ← synthetic training data generator
+├── model/
+│   └── train_model.py      ← trains Random Forest + saves artifacts
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── index.css
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx
+│   │   │   └── SongCard.jsx
+│   │   └── pages/
+│   │       ├── HomePage.jsx
+│   │       ├── MoodPage.jsx
+│   │       ├── ResultsPage.jsx
+│   │       └── AnalyticsPage.jsx
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── package.json
+│   ├── .env               ← local dev (localhost:5000)
+│   └── .env.production    ← update with Render URL before deploying
+├── render.yaml
+├── .gitignore
+└── README.md
+```

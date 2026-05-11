@@ -2,9 +2,17 @@ services:
   - type: web
     name: moodtunes-backend
     runtime: python
-    buildCommand: "pip install -r requirements.txt && python ../model/train_model.py"
-    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT"
+    rootDir: backend
+    buildCommand: >
+      pip install -r requirements.txt &&
+      cd .. &&
+      python dataset/generate_dataset.py &&
+      python model/train_model.py
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.0"
-    rootDir: backend
+        value: "3.11.9"
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false

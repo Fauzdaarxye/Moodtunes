@@ -1,34 +1,34 @@
 {
-  "model_name": "Logistic Regression",
-  "accuracy": 99.5,
+  "accuracy": 92.08,
+  "model_name": "Random Forest",
   "model_comparison": {
-    "Random Forest": 99.0,
-    "Logistic Regression": 99.5
+    "Logistic Regression": 91.25,
+    "Random Forest": 92.08
   },
   "confusion_matrix": [
     [
-      50,
+      55,
       0,
       0,
+      5
+    ],
+    [
+      0,
+      56,
+      4,
       0
     ],
     [
       0,
-      49,
-      1,
+      4,
+      56,
       0
     ],
     [
+      6,
       0,
       0,
-      50,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      50
+      54
     ]
   ],
   "class_labels": [
@@ -37,50 +37,52 @@
     "Happy",
     "Sad"
   ],
-  "classification_report": {
+  "feature_averages": {
     "Calm": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 50.0
+      "valence": 0.498,
+      "energy": 0.24,
+      "danceability": 0.402,
+      "tempo": 0.265,
+      "acousticness": 0.687,
+      "loudness": 0.441
     },
     "Energetic": {
-      "precision": 1.0,
-      "recall": 0.98,
-      "f1-score": 0.98989898989899,
-      "support": 50.0
+      "valence": 0.59,
+      "energy": 0.877,
+      "danceability": 0.74,
+      "tempo": 0.692,
+      "acousticness": 0.106,
+      "loudness": 0.874
     },
     "Happy": {
-      "precision": 0.9803921568627451,
-      "recall": 1.0,
-      "f1-score": 0.9900990099009901,
-      "support": 50.0
+      "valence": 0.749,
+      "energy": 0.718,
+      "danceability": 0.708,
+      "tempo": 0.551,
+      "acousticness": 0.21,
+      "loudness": 0.803
     },
     "Sad": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 50.0
-    },
-    "accuracy": 0.995,
-    "macro avg": {
-      "precision": 0.9950980392156863,
-      "recall": 0.995,
-      "f1-score": 0.994999499949995,
-      "support": 200.0
-    },
-    "weighted avg": {
-      "precision": 0.9950980392156862,
-      "recall": 0.995,
-      "f1-score": 0.9949994999499949,
-      "support": 200.0
+      "valence": 0.247,
+      "energy": 0.298,
+      "danceability": 0.355,
+      "tempo": 0.194,
+      "acousticness": 0.642,
+      "loudness": 0.527
     }
   },
-  "feature_importances": {},
+  "feature_importances": {
+    "valence": 0.2875,
+    "energy": 0.2587,
+    "danceability": 0.0817,
+    "tempo": 0.133,
+    "acousticness": 0.1551,
+    "loudness": 0.084
+  },
   "mood_distribution": {
-    "Energetic": 250,
-    "Sad": 250,
-    "Calm": 250,
-    "Happy": 250
+    "Calm": 300,
+    "Energetic": 300,
+    "Happy": 300,
+    "Sad": 300
   }
 }

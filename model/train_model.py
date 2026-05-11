@@ -1,106 +1,107 @@
 """
-train_model.py
-Trains a Random Forest classifier on the Spotify mood dataset.
-Saves: model/mood_classifier.pkl, model/scaler.pkl, model/label_encoder.pkl
-Also outputs evaluation metrics and plots.
+train_model.py  –  trains and saves the mood classifier
+Run:  python model/train_model.py
+Outputs (saved to model/):
+  mood_classifier.pkl
+  scaler.pkl
+  label_encoder.pkl
+  metrics.json
 """
-import pandas as pd
+import os, sys, json, pickle
 import numpy as np
-import pickle, os, json
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import (accuracy_score, classification_report,
-                              confusion_matrix)
+from sklearn.metrics import accuracy_score, confusion_matrix
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
-BASE   = os.path.dirname(__file__)
-DATA   = os.path.join(BASE, "spotify_mood_dataset.csv")
-OUT    = os.path.join(BASE, "..", "model")
-os.makedirs(OUT, exist_ok=True)
+# ── paths ─────────────────────────────────────────────────────────────────────
+HERE    = os.path.dirname(os.path.abspath(__file__))
+DATASET = os.path.join(HERE, "..", "dataset", "mood_dataset.csv")
 
-# ── 1. Load & inspect ─────────────────────────────────────────────────────────
-df = pd.read_csv(DATA)
-print(f"Loaded {len(df)} rows  |  columns: {list(df.columns)}")
+# If dataset does not exist yet, generate it on the fly
+if not os.path.exists(DATASET):
+    print("Dataset not found — generating...")
+    sys.path.insert(0, os.path.join(HERE, "..", "dataset"))
+    import generate_dataset  # runs the file
 
-FEATURES = ["valence", "energy", "danceability", "tempo",
-            "acousticness", "loudness"]
-TARGET   = "mood"
+FEATURES = ["valence", "energy", "danceability", "tempo", "acousticness", "loudness"]
 
-# ── 2. Create mood labels if missing ──────────────────────────────────────────
-if TARGET not in df.columns:
-    print("No 'mood' column found – deriving from audio features …")
-    def label_mood(row):
-        if row.valence > 0.6 and row.energy > 0.6:   return "Happy"
-        if row.valence < 0.4 and row.energy < 0.4:   return "Sad"
-        if row.energy > 0.75 and row.tempo > 120:     return "Energetic"
-        return "Calm"
-    df[TARGET] = df.apply(label_mood, axis=1)
-
-print("Mood distribution:\n", df[TARGET].value_counts())
-
-# ── 3. Pre-process ────────────────────────────────────────────────────────────
-X = df[FEATURES].fillna(df[FEATURES].median())
+# ── load data ─────────────────────────────────────────────────────────────────
+df = pd.read_csv(DATASET)
+X  = df[FEATURES].values
 le = LabelEncoder()
-y  = le.fit_transform(df[TARGET])
+y  = le.fit_transform(df["mood"].values)
 
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y, test_size=0.2, random_state=42, stratify=y)
+scaler  = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test  = scaler.transform(X_test)
 
-# ── 4. Train models & compare ─────────────────────────────────────────────────
-models = {
-    "Random Forest":    RandomForestClassifier(n_estimators=200, random_state=42),
-    "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-}
-results = {}
-for name, clf in models.items():
-    clf.fit(X_train, y_train)
-    acc = accuracy_score(y_test, clf.predict(X_test))
-    results[name] = round(acc * 100, 2)
-    print(f"  {name}: {acc:.4f}")
+# ── train both models, pick best ──────────────────────────────────────────────
+lr  = LogisticRegression(max_iter=1000, random_state=42)
+rf  = RandomForestClassifier(n_estimators=100, random_state=42)
 
-best_name = max(results, key=results.get)
-best_clf  = models[best_name]
-print(f"\n✅ Best model: {best_name} ({results[best_name]}%)")
+lr.fit(X_train, y_train)
+rf.fit(X_train, y_train)
 
-# ── 5. Evaluate best model ────────────────────────────────────────────────────
-y_pred = best_clf.predict(X_test)
-cm     = confusion_matrix(y_test, y_pred)
-report = classification_report(y_test, y_pred,
-                                target_names=le.classes_, output_dict=True)
+lr_acc = round(accuracy_score(y_test, lr.predict(X_test)) * 100, 2)
+rf_acc = round(accuracy_score(y_test, rf.predict(X_test)) * 100, 2)
 
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=le.classes_))
-print("Confusion Matrix:\n", cm)
+print(f"Logistic Regression: {lr_acc}%")
+print(f"Random Forest:       {rf_acc}%")
 
-# ── 6. Persist artefacts ──────────────────────────────────────────────────────
-with open(os.path.join(OUT, "mood_classifier.pkl"), "wb") as f:
-    pickle.dump(best_clf, f)
-with open(os.path.join(OUT, "scaler.pkl"), "wb") as f:
-    pickle.dump(scaler, f)
-with open(os.path.join(OUT, "label_encoder.pkl"), "wb") as f:
-    pickle.dump(le, f)
+best_clf  = rf  if rf_acc >= lr_acc else lr
+best_name = "Random Forest" if rf_acc >= lr_acc else "Logistic Regression"
+best_acc  = max(lr_acc, rf_acc)
 
-# Save metrics as JSON (consumed by /analytics endpoint)
+# ── confusion matrix ──────────────────────────────────────────────────────────
+cm      = confusion_matrix(y_test, best_clf.predict(X_test))
+classes = list(le.classes_)
+
+# ── feature averages per mood (for radar chart) ───────────────────────────────
+feature_avgs = {}
+for mood in classes:
+    mask  = df["mood"] == mood
+    avgs  = {}
+    for f in FEATURES:
+        val = df.loc[mask, f].mean()
+        # normalise tempo 0-1 for display
+        if f == "tempo":
+            val = (val - 50) / (180 - 50)
+        elif f == "loudness":
+            val = (val + 25) / 25   # loudness is negative
+        avgs[f] = round(float(np.clip(val, 0, 1)), 3)
+    feature_avgs[mood] = avgs
+
+# ── feature importances (Random Forest only) ─────────────────────────────────
+fi = {}
+if best_name == "Random Forest":
+    for feat, imp in zip(FEATURES, best_clf.feature_importances_):
+        fi[feat] = round(float(imp), 4)
+
+# ── mood distribution ─────────────────────────────────────────────────────────
+mood_dist = df["mood"].value_counts().to_dict()
+
+# ── save artifacts ────────────────────────────────────────────────────────────
+with open(os.path.join(HERE, "mood_classifier.pkl"), "wb") as f: pickle.dump(best_clf, f)
+with open(os.path.join(HERE, "scaler.pkl"),          "wb") as f: pickle.dump(scaler,   f)
+with open(os.path.join(HERE, "label_encoder.pkl"),   "wb") as f: pickle.dump(le,       f)
+
 metrics = {
-    "model_name": best_name,
-    "accuracy": results[best_name],
-    "model_comparison": results,
-    "confusion_matrix": cm.tolist(),
-    "class_labels": list(le.classes_),
-    "classification_report": report,
-    "feature_importances": (
-        dict(zip(FEATURES, best_clf.feature_importances_.tolist()))
-        if hasattr(best_clf, "feature_importances_") else {}
-    ),
-    "mood_distribution": df[TARGET].value_counts().to_dict(),
+    "accuracy":          best_acc,
+    "model_name":        best_name,
+    "model_comparison":  {"Logistic Regression": lr_acc, "Random Forest": rf_acc},
+    "confusion_matrix":  cm.tolist(),
+    "class_labels":      classes,
+    "feature_averages":  feature_avgs,
+    "feature_importances": fi,
+    "mood_distribution": mood_dist,
 }
-with open(os.path.join(OUT, "metrics.json"), "w") as f:
+with open(os.path.join(HERE, "metrics.json"), "w") as f:
     json.dump(metrics, f, indent=2)
 
-print(f"\nAll artefacts saved to {OUT}/")
-print("Done ✅")
+print(f"✅  Best model: {best_name} ({best_acc}%)")
+print(f"✅  Artifacts saved to {HERE}/")

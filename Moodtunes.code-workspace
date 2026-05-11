@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../CODE"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Moodtunes"
+	}
+}

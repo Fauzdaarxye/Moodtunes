@@ -10,7 +10,8 @@ export default defineConfig({
       '/analytics':  'http://localhost:5000',
       '/moods':      'http://localhost:5000',
       '/search':     'http://localhost:5000',
-      '/train':      'http://localhost:5000',
-    }
-  }
+      '/classify':   'http://localhost:5000',
+      '/trending':   'http://localhost:5000',
+    },
+  },
 });
