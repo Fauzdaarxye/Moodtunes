@@ -20,7 +20,7 @@ const noPointer = { pointerEvents: 'none' };
 
 export default function HomePage({ navigate }) {
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', isolation: 'isolate' }}>
       {/* Full-viewport WebGL hero */}
       <div
         style={{
@@ -40,7 +40,22 @@ export default function HomePage({ navigate }) {
         <HomeHeroCanvas />
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          top: 60,
+          height: 'calc(100vh - 60px)',
+          zIndex: 1,
+          pointerEvents: 'none',
+          background:
+            'radial-gradient(ellipse at center, rgba(3,3,8,0.9) 0%, rgba(3,3,8,0.78) 34%, rgba(3,3,8,0.36) 56%, rgba(3,3,8,0) 78%)',
+        }}
+        aria-hidden
+      />
+
+      <div style={{ position: 'relative', zIndex: 2, pointerEvents: 'none' }}>
         {/* Hero */}
         <section
           style={{

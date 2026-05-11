@@ -1,158 +1,146 @@
-import React, { useRef, useMemo, useLayoutEffect } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-/**
- * Forward rendering only (no EffectComposer / bloom). Post-processing was the
- * most likely cause of an all-black WebGL surface on this page layout.
- */
+const getGearParticle = (i, count, time, target, color) => {
+  const size = 58;
+  const teeth = 24;
+  const width = 42;
+  const helix = 3.5;
+  const spin = 0.75;
+  const toothDepth = 13;
+  const pi2 = Math.PI * 2;
+  const n = count > 1 ? i / (count - 1) : 0;
+  const layer = Math.floor(n * 260);
+  const local = n * 260 - layer;
+
+  const side = local < 0.5 ? -1 : 1;
+  const z = side * width * 0.5 + Math.sin(n * pi2 * 17 + time) * 0.8;
+  const k = layer / 260;
+  const baseA = k * pi2 * teeth;
+  const twist = z * 0.038 * helix;
+  const a = baseA + twist + time * spin;
+
+  const wave = Math.cos(baseA);
+  const toothShape = Math.pow(Math.abs(wave), 0.32);
+  const ridge = 0.5 + 0.5 * toothShape;
+  const root = size * 0.58;
+  const tip = root + toothDepth * ridge;
+  const flank = Math.sin(baseA * 2 + z * 0.08 * helix);
+  const bore = 1 - 0.16 * Math.abs(Math.sin(n * pi2 * 11 + time * spin));
+  const r = (tip + flank * 1.7) * bore;
+
+  target.set(Math.cos(a) * r, Math.sin(a) * r, z);
+
+  const hue = (0.36 + 0.12 * Math.sin(a * 0.45 + z * 0.04) + time * 0.015) % 1;
+  const light = 0.36 + 0.14 * ridge + 0.04 * Math.sin(z * 0.2 + a);
+  color.setHSL(hue < 0 ? hue + 1 : hue, 0.9, Math.min(0.58, light));
+};
+
+const createParticleTexture = () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext('2d');
+  const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.35, 'rgba(255,255,255,0.7)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 64, 64);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+};
+
 const ParticleSwarm = () => {
-  const meshRef = useRef(null);
-  const count = 12000;
-  const speedMult = 1;
-  const dummy = useMemo(() => {
-    const o = new THREE.Object3D();
-    o.scale.setScalar(1);
-    return o;
-  }, []);
+  const pointsRef = useRef(null);
+  const count = 14000;
   const target = useMemo(() => new THREE.Vector3(), []);
-  const pColor = useMemo(() => new THREE.Color(), []);
-  const color = pColor;
+  const particleColor = useMemo(() => new THREE.Color(), []);
+  const particleTexture = useMemo(() => createParticleTexture(), []);
 
-  const positions = useMemo(() => {
-    const pos = [];
+  const { geometry, positions, colors } = useMemo(() => {
+    const initialPositions = new Float32Array(count * 3);
+    const initialColors = new Float32Array(count * 3);
+    const initialTarget = new THREE.Vector3();
+    const initialColor = new THREE.Color();
+
     for (let i = 0; i < count; i += 1) {
-      pos.push(
-        new THREE.Vector3(
-          (Math.random() - 0.5) * 100,
-          (Math.random() - 0.5) * 100,
-          (Math.random() - 0.5) * 100,
-        ),
-      );
+      getGearParticle(i, count, 0, initialTarget, initialColor);
+      const offset = i * 3;
+      initialPositions[offset] = initialTarget.x;
+      initialPositions[offset + 1] = initialTarget.y;
+      initialPositions[offset + 2] = initialTarget.z;
+      initialColors[offset] = initialColor.r;
+      initialColors[offset + 1] = initialColor.g;
+      initialColors[offset + 2] = initialColor.b;
     }
-    return pos;
-  }, [count]);
 
-  const material = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        vertexColors: true,
-        toneMapped: false,
-        depthWrite: true,
-        transparent: false,
-      }),
-    [],
-  );
-  const geometry = useMemo(() => new THREE.TetrahedronGeometry(0.32, 0), []);
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(initialPositions, 3).setUsage(THREE.DynamicDrawUsage),
+    );
+    particleGeometry.setAttribute(
+      'color',
+      new THREE.BufferAttribute(initialColors, 3).setUsage(THREE.DynamicDrawUsage),
+    );
 
-  const PARAMS = useMemo(
-    () => ({
-      gearSize: 70,
-      gearTeeth: 24,
-      gearWidth: 45,
-      gearHelix: 3.2,
-      gearSpin: 0.8,
-      gearDepth: 10,
-    }),
-    [],
-  );
-  const addControl = (id, _l, _min, _max, val) =>
-    PARAMS[id] !== undefined ? PARAMS[id] : val;
-  const setInfo = () => {};
-  const annotate = () => {};
-
-  useLayoutEffect(() => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    if (!mesh.instanceColor) {
-      mesh.instanceColor = new THREE.InstancedBufferAttribute(
-        new Float32Array(count * 3),
-        3,
-      );
-    }
-    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    if (mesh.instanceColor) mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    return {
+      geometry: particleGeometry,
+      positions: initialPositions,
+      colors: initialColors,
+    };
   }, [count]);
 
   useFrame((state) => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-    const time = state.clock.getElapsedTime() * speedMult;
+    const points = pointsRef.current;
+    if (!points) return;
+    const time = state.clock.getElapsedTime();
+    const positionAttribute = points.geometry.getAttribute('position');
+    const colorAttribute = points.geometry.getAttribute('color');
 
     for (let i = 0; i < count; i += 1) {
-      const size = addControl('gearSize', 'Tamaño', 20, 120, 70);
-      const teeth = addControl('gearTeeth', 'Dientes', 8, 40, 24);
-      const width = addControl('gearWidth', 'Ancho', 10, 100, 45);
-      const helix = addControl('gearHelix', 'Ángulo helicoidal', 0, 8, 3.2);
-      const spin = addControl('gearSpin', 'Rotación', 0, 3, 0.8);
-      const toothDepth = addControl('gearDepth', 'Profundidad diente', 1, 25, 10);
+      getGearParticle(i, count, time, target, particleColor);
+      const offset = i * 3;
 
-      const pi2 = 6.28318530718;
-      const n = count > 1 ? i / (count - 1) : 0;
-      const layer = Math.floor(n * 220.0);
-      const local = n * 220.0 - layer;
+      positions[offset] += (target.x - positions[offset]) * 0.18;
+      positions[offset + 1] += (target.y - positions[offset + 1]) * 0.18;
+      positions[offset + 2] += (target.z - positions[offset + 2]) * 0.18;
 
-      const side = local < 0.5 ? -1.0 : 1.0;
-      const z = side * width * 0.5 + Math.sin(n * pi2 * 17.0 + time) * 0.4;
-
-      const k = layer / 220.0;
-      const baseA = k * pi2 * teeth;
-      const t = time * spin;
-      const twist = z * 0.035 * helix;
-      const a = baseA + twist + t;
-
-      const wave = Math.cos(baseA);
-      const toothShape = Math.pow(Math.abs(wave), 0.35);
-      const ridge = 0.5 + 0.5 * toothShape;
-      const root = size * 0.58;
-      const tip = root + toothDepth * ridge;
-
-      const flank = Math.sin(baseA * 2.0 + z * 0.08 * helix);
-      const r = tip + flank * 1.4;
-
-      const boreMix = Math.sin(n * pi2 * 11.0 + t);
-      const bore = 1.0 - 0.18 * Math.abs(boreMix);
-      const rr = r * bore;
-
-      const x = Math.cos(a) * rr;
-      const y = Math.sin(a) * rr;
-
-      target.set(x, y, z);
-
-      const h =
-        (0.58 + 0.18 * Math.sin(a * 0.7 + z * 0.05) + time * 0.02) % 1.0;
-      const l =
-        0.42 + 0.2 * ridge + 0.08 * Math.sin(z * 0.2 + a);
-      color.setHSL(h, 0.85, Math.min(0.72, l));
-
-      if (i === 0) {
-        setInfo(
-          'Engranaje Helicoidal',
-          'Partículas formando dientes inclinados con torsión helicoidal animada.',
-        );
-        annotate('gearAxis', target, 'eje helicoidal');
-      }
-
-      positions[i].lerp(target, 0.1);
-      dummy.position.copy(positions[i]);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.setScalar(1);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-      mesh.setColorAt(i, pColor);
+      colors[offset] += (particleColor.r - colors[offset]) * 0.12;
+      colors[offset + 1] += (particleColor.g - colors[offset + 1]) * 0.12;
+      colors[offset + 2] += (particleColor.b - colors[offset + 2]) * 0.12;
     }
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+
+    positionAttribute.needsUpdate = true;
+    colorAttribute.needsUpdate = true;
+    points.rotation.z = Math.sin(time * 0.18) * 0.08;
+    points.rotation.x = Math.sin(time * 0.12) * 0.12;
   });
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geometry, material, count]}
+    <points
+      ref={pointsRef}
+      geometry={geometry}
       frustumCulled={false}
-    />
+    >
+      <pointsMaterial
+        attach="material"
+        map={particleTexture}
+        vertexColors
+        size={0.82}
+        sizeAttenuation
+        transparent
+        opacity={0.6}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </points>
   );
 };
 
