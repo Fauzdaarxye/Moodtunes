@@ -1,0 +1,8 @@
+{"sessionId": "14f195", "timestamp": 1778533119257, "location": "app.py:make_spotify", "message": "credentials present, building client", "data": {"has_id": true, "has_secret": true}, "hypothesisId": "H1"}
+{"sessionId": "14f195", "timestamp": 1778533120688, "location": "app.py:bulk_audio_features", "message": "SpotifyException on audio_features", "data": {"http_status": 403, "code": -1}, "hypothesisId": "H4"}
+{"sessionId": "14f195", "timestamp": 1778533127810, "location": "app.py:fetch_songs_for_mood", "message": "fallback path", "data": {"mood": "Happy", "pages": 15, "pool_len": 140, "returned": 3, "af_endpoint_ok": false}, "hypothesisId": "H2"}
+{"sessionId": "14f195", "timestamp": 1778533127811, "location": "app.py:recommend", "message": "response ready", "data": {"mood": "Happy", "song_count": 3}, "hypothesisId": "H2"}
+{"sessionId": "14f195", "timestamp": 1778533128116, "location": "app.py:make_spotify", "message": "credentials present, building client", "data": {"has_id": true, "has_secret": true}, "hypothesisId": "H1"}
+{"sessionId": "14f195", "timestamp": 1778533129279, "location": "app.py:bulk_audio_features", "message": "SpotifyException on audio_features", "data": {"http_status": 403, "code": -1}, "hypothesisId": "H4"}
+{"sessionId": "14f195", "timestamp": 1778533136538, "location": "app.py:fetch_songs_for_mood", "message": "fallback path", "data": {"mood": "Happy", "pages": 15, "pool_len": 150, "returned": 3, "af_endpoint_ok": false}, "hypothesisId": "H2"}
+{"sessionId": "14f195", "timestamp": 1778533136541, "location": "app.py:recommend", "message": "response ready", "data": {"mood": "Happy", "song_count": 3}, "hypothesisId": "H2"}

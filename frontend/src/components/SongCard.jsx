@@ -89,8 +89,15 @@ export default function SongCard({ song, index = 0 }) {
             borderRadius: 20, padding: '2px 10px',
             fontSize: 10, fontWeight: 700, letterSpacing: '0.5px',
             backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
           }}>
-            {m.emoji} {(song.mood || 'UNKNOWN').toUpperCase()}
+            <span>{m.emoji} {(song.mood || 'UNKNOWN').toUpperCase()}</span>
+            {song.feature_source === 'profile' && (
+              <span style={{
+                fontSize: 8, fontWeight: 800, opacity: 0.95,
+                background: 'rgba(0,0,0,0.35)', padding: '2px 6px', borderRadius: 8,
+              }}>PROFILE</span>
+            )}
           </div>
 
           {/* Confidence badge */}
@@ -118,8 +125,12 @@ export default function SongCard({ song, index = 0 }) {
             border: `1px solid ${m.border}`,
             borderRadius: 20, padding: '2px 10px',
             fontSize: 10, fontWeight: 700,
+            display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
           }}>
-            {(song.mood || '').toUpperCase()}
+            <span>{(song.mood || '').toUpperCase()}</span>
+            {song.feature_source === 'profile' && (
+              <span style={{ fontSize: 8, opacity: 0.9 }}>PROFILE</span>
+            )}
           </div>
         </div>
       )}
@@ -148,6 +159,7 @@ export default function SongCard({ song, index = 0 }) {
             ['Valence',      song.valence],
             ['Energy',       song.energy],
             ['Danceability', song.danceability],
+            ['Acousticness', song.acousticness],
           ].map(([label, val]) => (
             <div key={label}>
               <div style={{
@@ -165,25 +177,25 @@ export default function SongCard({ song, index = 0 }) {
           ))}
         </div>
 
-        {/* Footer: BPM + preview/acousticness */}
+        {/* Footer: tempo, loudness, preview */}
         <div style={{
           paddingTop: 10, borderTop: '1px solid var(--border)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          display: 'flex', flexWrap: 'wrap', gap: '8px 14px', justifyContent: 'space-between', alignItems: 'center',
           color: 'var(--text3)', fontSize: 11,
         }}>
           <span>🎚 {(song.tempo || 0).toFixed(0)} BPM</span>
-
+          <span>🔉 {(song.loudness ?? 0).toFixed(1)} dB</span>
           {song.preview_url ? (
             <a
               href={song.preview_url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: m.accent, fontWeight: 700, fontSize: 11, textDecoration: 'none' }}
+              style={{ color: m.accent, fontWeight: 700, fontSize: 11, textDecoration: 'none', marginLeft: 'auto' }}
             >
               ▶ Preview
             </a>
           ) : (
-            <span>🎸 {((song.acousticness || 0) * 100).toFixed(0)}% acoustic</span>
+            <span style={{ marginLeft: 'auto' }}>No preview</span>
           )}
         </div>
 

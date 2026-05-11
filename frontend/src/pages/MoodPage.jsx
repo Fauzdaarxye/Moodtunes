@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // NOTE: VITE_API_URL comes from frontend/.env (local) or from Vercel env vars (production)
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+/** Defaults aligned with backend MOOD_DEFAULT_FEATURES (valence, energy, danceability, tempo). */
+const MOOD_AUDIO_DEFAULTS = {
+  Happy:     { valence: 0.75, energy: 0.72, danceability: 0.68, tempo: 118 },
+  Sad:       { valence: 0.28, energy: 0.32, danceability: 0.35, tempo: 82 },
+  Energetic: { valence: 0.62, energy: 0.88, danceability: 0.72, tempo: 132 },
+  Calm:      { valence: 0.48, energy: 0.22, danceability: 0.28, tempo: 88 },
+};
 
 const MOODS = [
   {
@@ -35,13 +43,28 @@ export default function MoodPage({ navigate }) {
   const [limit,    setLimit]    = useState(10);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [audioFeats, setAudioFeats] = useState(() => ({ ...MOOD_AUDIO_DEFAULTS.Happy }));
+
+  useEffect(() => {
+    if (selected && MOOD_AUDIO_DEFAULTS[selected]) {
+      setAudioFeats({ ...MOOD_AUDIO_DEFAULTS[selected] });
+    }
+  }, [selected]);
 
   const fetchSongs = async () => {
     if (!selected) return;
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch(`${API}/recommend?mood=${selected}&limit=${limit}`);
+      const params = new URLSearchParams({
+        mood: selected,
+        limit: String(limit),
+        valence: String(audioFeats.valence),
+        energy: String(audioFeats.energy),
+        danceability: String(audioFeats.danceability),
+        tempo: String(audioFeats.tempo),
+      });
+      const res  = await fetch(`${API}/recommend?${params}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Server error ${res.status}`);
@@ -50,7 +73,11 @@ export default function MoodPage({ navigate }) {
       if (!data.songs || data.songs.length === 0) {
         throw new Error('No songs found — Spotify may be slow, try again.');
       }
-      navigate('results', { mood: selected, songs: data.songs });
+      navigate('results', {
+        mood: selected,
+        songs: data.songs,
+        audioFeaturesProfile: data.audio_features_profile ?? null,
+      });
     } catch (e) {
       setError(e.message || 'Could not reach the backend. Make sure Flask is running on port 5000.');
     } finally {
@@ -120,8 +147,8 @@ export default function MoodPage({ navigate }) {
         ))}
       </div>
 
-      {/* Slider */}
-      <div className="glass" style={{ padding: '24px 28px', marginBottom: 28 }}>
+      {/* Playlist size */}
+      <div className="glass" style={{ padding: '24px 28px', marginBottom: 18 }}>
         <label style={{ display: 'block', marginBottom: 12, fontWeight: 600, fontSize: 14 }}>
           Number of songs:{' '}
           <span style={{ color: 'var(--green)', fontFamily: 'Syne', fontWeight: 700 }}>{limit}</span>
@@ -136,6 +163,44 @@ export default function MoodPage({ navigate }) {
           <span>5</span><span>20</span>
         </div>
       </div>
+
+      {/* Audio feature targets (sent to /recommend as query params) */}
+      {selected && (
+        <div className="glass" style={{ padding: '22px 28px', marginBottom: 28 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Audio feature targets</div>
+          <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 18, lineHeight: 1.5 }}>
+            Valence, energy, danceability, and tempo are sent to the API and shown on your playlist.
+            When Spotify does not return per-track analysis, these values represent your mood profile.
+          </p>
+          {[
+            { key: 'valence', label: 'Valence (positivity)', min: 0, max: 1, step: 0.01, fmt: v => `${(v * 100).toFixed(0)}%` },
+            { key: 'energy', label: 'Energy', min: 0, max: 1, step: 0.01, fmt: v => `${(v * 100).toFixed(0)}%` },
+            { key: 'danceability', label: 'Danceability', min: 0, max: 1, step: 0.01, fmt: v => `${(v * 100).toFixed(0)}%` },
+            { key: 'tempo', label: 'Tempo (BPM)', min: 40, max: 200, step: 1, fmt: v => `${Math.round(v)} BPM` },
+          ].map(row => (
+            <div key={row.key} style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
+                <span style={{ color: 'var(--text2)', fontWeight: 600 }}>{row.label}</span>
+                <span style={{ color: 'var(--green)', fontFamily: 'Syne', fontWeight: 700, fontSize: 12 }}>
+                  {row.fmt(audioFeats[row.key])}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={row.min}
+                max={row.max}
+                step={row.step}
+                value={audioFeats[row.key]}
+                onChange={e => setAudioFeats(prev => ({
+                  ...prev,
+                  [row.key]: Number(e.target.value),
+                }))}
+                style={{ width: '100%', accentColor: 'var(--green)', cursor: 'pointer' }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Error */}
       {error && (

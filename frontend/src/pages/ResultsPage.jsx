@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SongCard from '../components/SongCard';
 
 // FIXED: was incorrectly 'localhost:5003' in old version
@@ -15,11 +15,17 @@ const avg = (arr, key) => arr.length
   ? arr.reduce((s, x) => s + (x[key] || 0), 0) / arr.length
   : 0;
 
-export default function ResultsPage({ mood, songs: initialSongs, navigate }) {
+export default function ResultsPage({ mood, songs: initialSongs, audioFeaturesProfile: initialProfile, navigate }) {
   const [songs,   setSongs]   = useState(initialSongs || []);
+  const [profile, setProfile] = useState(initialProfile || null);
   const [search,  setSearch]  = useState('');
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+
+  useEffect(() => {
+    setSongs(initialSongs || []);
+    setProfile(initialProfile ?? null);
+  }, [initialSongs, initialProfile, mood]);
 
   const m = MOOD_META[mood] || MOOD_META.Happy;
 
@@ -32,10 +38,20 @@ export default function ResultsPage({ mood, songs: initialSongs, navigate }) {
     setLoading(true);
     setError('');
     try {
-      const res  = await fetch(`${API}/recommend?mood=${mood}&limit=${songs.length || 10}`);
+      const params = new URLSearchParams({
+        mood,
+        limit: String(songs.length || 10),
+      });
+      if (profile) {
+        ['valence', 'energy', 'danceability', 'tempo', 'acousticness', 'loudness'].forEach(k => {
+          if (profile[k] != null && profile[k] !== '') params.set(k, String(profile[k]));
+        });
+      }
+      const res  = await fetch(`${API}/recommend?${params}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setSongs(data.songs || []);
+      setProfile(data.audio_features_profile ?? null);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -84,7 +100,48 @@ export default function ResultsPage({ mood, songs: initialSongs, navigate }) {
         </div>
       </div>
 
-      {/* Stats bar */}
+      {/* API audio feature profile (query targets + merged defaults) */}
+      {profile && (
+        <div
+          className="glass"
+          style={{
+            marginBottom: 28,
+            padding: '22px 26px',
+            animation: 'fadeUp 0.5s ease 0.05s both',
+            border: `1px solid ${m.color}33`,
+          }}
+        >
+          <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 17, marginBottom: 6, color: m.color }}>
+            Audio feature profile
+          </div>
+          <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16, lineHeight: 1.55 }}>
+            Values sent to <code style={{ fontSize: 11 }}>/recommend</code> (valence, energy, danceability, tempo, plus
+            acousticness and loudness from mood defaults). They appear on each card; when Spotify does not return track-level
+            analysis, this profile is used so Sad and other moods still show meaningful numbers.
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: 12,
+          }}>
+            {[
+              { label: 'Valence', v: `${((profile.valence ?? 0) * 100).toFixed(0)}%` },
+              { label: 'Energy', v: `${((profile.energy ?? 0) * 100).toFixed(0)}%` },
+              { label: 'Danceability', v: `${((profile.danceability ?? 0) * 100).toFixed(0)}%` },
+              { label: 'Tempo', v: `${Number(profile.tempo ?? 0).toFixed(0)} BPM` },
+              { label: 'Acousticness', v: `${((profile.acousticness ?? 0) * 100).toFixed(0)}%` },
+              { label: 'Loudness', v: `${Number(profile.loudness ?? 0).toFixed(1)} dB` },
+            ].map(row => (
+              <div key={row.label} style={{ background: m.bg, borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 18, color: m.color }}>{row.v}</div>
+                <div style={{ color: 'var(--text3)', fontSize: 10, marginTop: 4 }}>{row.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stats bar (list averages — match profile when tracks use profile source) */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))',
         gap: 14, marginBottom: 44, animation: 'fadeUp 0.5s ease 0.08s both',
