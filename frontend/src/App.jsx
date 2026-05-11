@@ -4,12 +4,22 @@ import HomePage    from './pages/HomePage';
 import MoodPage    from './pages/MoodPage';
 import ResultsPage from './pages/ResultsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import LoginPage from './pages/LoginPage';
+
+const loadSavedUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('moodtunes-user')) || null;
+  } catch {
+    return null;
+  }
+};
 
 export default function App() {
   const [page,         setPage]         = useState('home');
   const [selectedMood, setSelectedMood] = useState(null);
   const [songs,        setSongs]        = useState([]);
   const [audioFeaturesProfile, setAudioFeaturesProfile] = useState(null);
+  const [user, setUser] = useState(loadSavedUser);
   /** Last mood-page request size; refresh on results must not shrink to current list length. */
   const [recommendLimit, setRecommendLimit] = useState(10);
 
@@ -32,9 +42,28 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleAuth = (account) => {
+    const nextUser = {
+      name: account.name || account.email.split('@')[0],
+      email: account.email,
+      provider: account.provider || 'gmail',
+      createdAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem('moodtunes-user', JSON.stringify(nextUser));
+    setUser(nextUser);
+    navigate('mood');
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('moodtunes-user');
+    setUser(null);
+    navigate('home');
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <Navbar page={page} navigate={navigate} />
+      <Navbar page={page} navigate={navigate} user={user} onSignOut={handleSignOut} />
       <main>
         {page === 'home'      && <HomePage      navigate={navigate} />}
         {page === 'mood'      && <MoodPage      navigate={navigate} />}
@@ -48,6 +77,7 @@ export default function App() {
           />
         )}
         {page === 'analytics' && <AnalyticsPage />}
+        {page === 'login' && <LoginPage onAuth={handleAuth} navigate={navigate} />}
       </main>
     </div>
   );

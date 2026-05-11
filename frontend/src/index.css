@@ -92,3 +92,13 @@ h1, h2, h3 { font-family: 'Syne', sans-serif; line-height: 1.2; }
 /* ── input reset ───────────────────────────────────────────────────────────── */
 input, button { font-family: inherit; }
 a { color: inherit; }
+
+@media (max-width: 860px) {
+  .auth-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .auth-benefits {
+    grid-template-columns: 1fr !important;
+  }
+}

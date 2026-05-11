@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-export default function Navbar({ page, navigate }) {
+export default function Navbar({ page, navigate, user, onSignOut }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -44,29 +44,87 @@ export default function Navbar({ page, navigate }) {
       </button>
 
       {/* Nav links */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        {links.map(({ id, label }) => (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {links.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => navigate(id)}
+              style={{
+                background:   page === id ? 'rgba(29,185,84,0.12)' : 'transparent',
+                border:       page === id ? '1px solid rgba(29,185,84,0.3)' : '1px solid transparent',
+                color:        page === id ? 'var(--green)' : 'var(--text2)',
+                borderRadius: 50,
+                padding:      '6px 18px',
+                cursor:       'pointer',
+                fontFamily:   'DM Sans',
+                fontWeight:   page === id ? 600 : 400,
+                fontSize:     14,
+                transition:   'all 0.2s',
+              }}
+              onMouseEnter={e => { if (page !== id) e.currentTarget.style.color = 'var(--text)'; }}
+              onMouseLeave={e => { if (page !== id) e.currentTarget.style.color = 'var(--text2)'; }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+            <button
+              type="button"
+              onClick={() => navigate('mood')}
+              title={user.email}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                border: '1px solid rgba(29,185,84,0.35)',
+                background: 'rgba(29,185,84,0.14)',
+                color: 'var(--green)',
+                cursor: 'pointer',
+                fontWeight: 800,
+                fontSize: 13,
+              }}
+            >
+              {user.name.slice(0, 1).toUpperCase()}
+            </button>
+            <button
+              type="button"
+              onClick={onSignOut}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--text2)',
+                borderRadius: 50,
+                padding: '6px 14px',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
           <button
-            key={id}
-            onClick={() => navigate(id)}
+            type="button"
+            onClick={() => navigate('login')}
             style={{
-              background:   page === id ? 'rgba(29,185,84,0.12)' : 'transparent',
-              border:       page === id ? '1px solid rgba(29,185,84,0.3)' : '1px solid transparent',
-              color:        page === id ? 'var(--green)' : 'var(--text2)',
+              background: page === 'login' ? 'var(--green)' : 'rgba(255,255,255,0.06)',
+              border: page === 'login' ? '1px solid var(--green)' : '1px solid var(--border)',
+              color: page === 'login' ? '#000' : 'var(--text)',
               borderRadius: 50,
-              padding:      '6px 18px',
-              cursor:       'pointer',
-              fontFamily:   'DM Sans',
-              fontWeight:   page === id ? 600 : 400,
-              fontSize:     14,
-              transition:   'all 0.2s',
+              padding: '7px 18px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 14,
+              marginLeft: 8,
             }}
-            onMouseEnter={e => { if (page !== id) e.currentTarget.style.color = 'var(--text)'; }}
-            onMouseLeave={e => { if (page !== id) e.currentTarget.style.color = 'var(--text2)'; }}
           >
-            {label}
+            Login
           </button>
-        ))}
+        )}
       </div>
     </nav>
   );
