@@ -25,9 +25,15 @@ export default function HomePage({ navigate }) {
       <div
         style={{
           position: 'fixed',
-          inset: 0,
-          zIndex: 0,
+          left: 0,
+          right: 0,
           top: 60,
+          width: '100%',
+          height: 'calc(100vh - 60px)',
+          minHeight: 'calc(100vh - 60px)',
+          zIndex: 0,
+          overflow: 'hidden',
+          background: '#030308',
         }}
         aria-hidden
       >

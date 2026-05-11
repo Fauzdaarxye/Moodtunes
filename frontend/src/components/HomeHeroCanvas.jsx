@@ -1,16 +1,21 @@
 import React, { useRef, useMemo, useLayoutEffect } from 'react';
-import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
-import { OrbitControls, Effects } from '@react-three/drei';
-import { UnrealBloomPass } from 'three-stdlib';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-extend({ UnrealBloomPass });
-
+/**
+ * Forward rendering only (no EffectComposer / bloom). Post-processing was the
+ * most likely cause of an all-black WebGL surface on this page layout.
+ */
 const ParticleSwarm = () => {
   const meshRef = useRef(null);
-  const count = 20000;
+  const count = 12000;
   const speedMult = 1;
-  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const dummy = useMemo(() => {
+    const o = new THREE.Object3D();
+    o.scale.setScalar(1);
+    return o;
+  }, []);
   const target = useMemo(() => new THREE.Vector3(), []);
   const pColor = useMemo(() => new THREE.Color(), []);
   const color = pColor;
@@ -30,10 +35,17 @@ const ParticleSwarm = () => {
   }, [count]);
 
   const material = useMemo(
-    () => new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true }),
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        toneMapped: false,
+        depthWrite: true,
+        transparent: false,
+      }),
     [],
   );
-  const geometry = useMemo(() => new THREE.TetrahedronGeometry(0.25), []);
+  const geometry = useMemo(() => new THREE.TetrahedronGeometry(0.32, 0), []);
 
   const PARAMS = useMemo(
     () => ({
@@ -60,15 +72,14 @@ const ParticleSwarm = () => {
         3,
       );
     }
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    if (mesh.instanceColor) mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
   }, [count]);
 
   useFrame((state) => {
-    if (!meshRef.current) return;
+    const mesh = meshRef.current;
+    if (!mesh) return;
     const time = state.clock.getElapsedTime() * speedMult;
-
-    if (material.uniforms && material.uniforms.uTime) {
-      material.uniforms.uTime.value = time;
-    }
 
     for (let i = 0; i < count; i += 1) {
       const size = addControl('gearSize', 'Tamaño', 20, 120, 70);
@@ -113,8 +124,8 @@ const ParticleSwarm = () => {
       const h =
         (0.58 + 0.18 * Math.sin(a * 0.7 + z * 0.05) + time * 0.02) % 1.0;
       const l =
-        0.38 + 0.22 * ridge + 0.08 * Math.sin(z * 0.2 + a);
-      color.setHSL(h, 0.82, l);
+        0.42 + 0.2 * ridge + 0.08 * Math.sin(z * 0.2 + a);
+      color.setHSL(h, 0.85, Math.min(0.72, l));
 
       if (i === 0) {
         setInfo(
@@ -126,35 +137,37 @@ const ParticleSwarm = () => {
 
       positions[i].lerp(target, 0.1);
       dummy.position.copy(positions[i]);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.setScalar(1);
       dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, dummy.matrix);
-      meshRef.current.setColorAt(i, pColor);
+      mesh.setMatrixAt(i, dummy.matrix);
+      mesh.setColorAt(i, pColor);
     }
-    meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
-    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   });
 
-  return <instancedMesh ref={meshRef} args={[geometry, material, count]} />;
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, material, count]}
+      frustumCulled={false}
+    />
+  );
 };
 
 function HeroScene() {
-  const { size } = useThree();
-  const bloomRes = useMemo(
-    () => new THREE.Vector2(size.width, size.height),
-    [size.width, size.height],
-  );
-
   return (
     <>
-      <color attach="background" args={['#000000']} />
-      <fog attach="fog" args={['#000000', 45, 220]} />
+      <color attach="background" args={['#030308']} />
       <ParticleSwarm />
-      <OrbitControls autoRotate autoRotateSpeed={0.35} enableZoom={false} />
-      <Effects multisamping={0} disableGamma>
-        <unrealBloomPass args={[bloomRes, 1.8, 0.4, 0]} />
-      </Effects>
+      <OrbitControls
+        autoRotate
+        autoRotateSpeed={0.35}
+        enableZoom={false}
+        enablePan={false}
+        makeDefault
+      />
     </>
   );
 }
@@ -162,9 +175,23 @@ function HeroScene() {
 export default function HomeHeroCanvas() {
   return (
     <Canvas
-      camera={{ position: [0, 0, 100], fov: 60 }}
-      gl={{ antialias: false, alpha: false }}
+      style={{ width: '100%', height: '100%', display: 'block' }}
+      camera={{ position: [0, 0, 100], fov: 60, near: 0.1, far: 500 }}
+      gl={{
+        antialias: true,
+        alpha: false,
+        preserveDrawingBuffer: false,
+        powerPreference: 'high-performance',
+      }}
       dpr={[1, 2]}
+      frameloop="always"
+      onCreated={({ gl }) => {
+        gl.setClearColor('#030308', 1);
+        if ('outputColorSpace' in gl) {
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+        }
+        gl.toneMapping = THREE.NoToneMapping;
+      }}
     >
       <HeroScene />
     </Canvas>
