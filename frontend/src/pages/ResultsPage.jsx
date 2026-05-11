@@ -15,7 +15,13 @@ const avg = (arr, key) => arr.length
   ? arr.reduce((s, x) => s + (x[key] || 0), 0) / arr.length
   : 0;
 
-export default function ResultsPage({ mood, songs: initialSongs, audioFeaturesProfile: initialProfile, navigate }) {
+export default function ResultsPage({
+  mood,
+  songs: initialSongs,
+  audioFeaturesProfile: initialProfile,
+  navigate,
+  recommendLimit = 10,
+}) {
   const [songs,   setSongs]   = useState(initialSongs || []);
   const [profile, setProfile] = useState(initialProfile || null);
   const [search,  setSearch]  = useState('');
@@ -40,7 +46,7 @@ export default function ResultsPage({ mood, songs: initialSongs, audioFeaturesPr
     try {
       const params = new URLSearchParams({
         mood,
-        limit: String(songs.length || 10),
+        limit: String(recommendLimit),
       });
       if (profile) {
         ['valence', 'energy', 'danceability', 'tempo', 'acousticness', 'loudness'].forEach(k => {

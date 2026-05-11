@@ -316,7 +316,7 @@ def fetch_songs_for_mood(mood: str, limit: int, feature_targets=None) -> list:
     if not candidates:
         random.shuffle(pool)
         out = []
-        for t in pool[: limit * 2]:
+        for t in pool:
             # Without audio features we can't ML-classify; tag with requested mood
             out.append(format_track(t, {}, mood, 0, profile_af=profile))
             if len(out) >= limit:

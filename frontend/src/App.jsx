@@ -10,6 +10,8 @@ export default function App() {
   const [selectedMood, setSelectedMood] = useState(null);
   const [songs,        setSongs]        = useState([]);
   const [audioFeaturesProfile, setAudioFeaturesProfile] = useState(null);
+  /** Last mood-page request size; refresh on results must not shrink to current list length. */
+  const [recommendLimit, setRecommendLimit] = useState(10);
 
   const navigate = (to, data = {}) => {
     if (to === 'home') {
@@ -19,6 +21,10 @@ export default function App() {
     }
     if (data.mood)  setSelectedMood(data.mood);
     if (data.songs) setSongs(data.songs);
+    if (data.recommendLimit != null && data.recommendLimit !== '') {
+      const n = parseInt(String(data.recommendLimit), 10);
+      if (!Number.isNaN(n)) setRecommendLimit(Math.max(1, Math.min(30, n)));
+    }
     if ('audioFeaturesProfile' in data) {
       setAudioFeaturesProfile(data.audioFeaturesProfile ?? null);
     }
@@ -37,6 +43,7 @@ export default function App() {
             mood={selectedMood}
             songs={songs}
             audioFeaturesProfile={audioFeaturesProfile}
+            recommendLimit={recommendLimit}
             navigate={navigate}
           />
         )}

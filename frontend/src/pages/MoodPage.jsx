@@ -77,6 +77,7 @@ export default function MoodPage({ navigate }) {
         mood: selected,
         songs: data.songs,
         audioFeaturesProfile: data.audio_features_profile ?? null,
+        recommendLimit: limit,
       });
     } catch (e) {
       setError(e.message || 'Could not reach the backend. Make sure Flask is running on port 5000.');
