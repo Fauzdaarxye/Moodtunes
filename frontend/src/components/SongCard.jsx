@@ -23,6 +23,7 @@ export default function SongCard({ song, index = 0 }) {
   const [hovered, setHovered] = useState(false);
   const [imgErr,  setImgErr]  = useState(false);
   const m = MOOD_COLORS[song.mood] || MOOD_COLORS.Unknown;
+  const hasAudioFeatures = song.feature_source === 'spotify';
 
   return (
     <div
@@ -92,11 +93,11 @@ export default function SongCard({ song, index = 0 }) {
             display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
           }}>
             <span>{m.emoji} {(song.mood || 'UNKNOWN').toUpperCase()}</span>
-            {song.feature_source === 'profile' && (
+            {!hasAudioFeatures && (
               <span style={{
                 fontSize: 8, fontWeight: 800, opacity: 0.95,
                 background: 'rgba(0,0,0,0.35)', padding: '2px 6px', borderRadius: 8,
-              }}>PROFILE</span>
+              }}>POPULAR</span>
             )}
           </div>
 
@@ -128,8 +129,8 @@ export default function SongCard({ song, index = 0 }) {
             display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
           }}>
             <span>{(song.mood || '').toUpperCase()}</span>
-            {song.feature_source === 'profile' && (
-              <span style={{ fontSize: 8, opacity: 0.9 }}>PROFILE</span>
+            {!hasAudioFeatures && (
+              <span style={{ fontSize: 8, opacity: 0.9 }}>POPULAR</span>
             )}
           </div>
         </div>
@@ -153,29 +154,42 @@ export default function SongCard({ song, index = 0 }) {
           )}
         </div>
 
-        {/* Audio feature bars */}
-        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-          {[
-            ['Valence',      song.valence],
-            ['Energy',       song.energy],
-            ['Danceability', song.danceability],
-            ['Acousticness', song.acousticness],
-          ].map(([label, val]) => (
-            <div key={label}>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', marginBottom: 3,
-              }}>
-                <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {label}
-                </span>
-                <span style={{ fontSize: 10, color: m.accent, fontWeight: 600 }}>
-                  {((val || 0) * 100).toFixed(0)}%
-                </span>
+        {hasAudioFeatures ? (
+          <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+            {[
+              ['Valence',      song.valence],
+              ['Energy',       song.energy],
+              ['Danceability', song.danceability],
+              ['Acousticness', song.acousticness],
+            ].map(([label, val]) => (
+              <div key={label}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', marginBottom: 3,
+                }}>
+                  <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {label}
+                  </span>
+                  <span style={{ fontSize: 10, color: m.accent, fontWeight: 600 }}>
+                    {((val || 0) * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <AudioBar value={val || 0} color={m.accent} />
               </div>
-              <AudioBar value={val || 0} color={m.accent} />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            marginBottom: 12,
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: '10px 12px',
+            color: 'var(--text3)',
+            fontSize: 11,
+            lineHeight: 1.45,
+          }}>
+            Ranked by Spotify popularity because track-level audio analysis is unavailable.
+          </div>
+        )}
 
         {/* Footer: tempo, loudness, preview */}
         <div style={{
@@ -183,8 +197,12 @@ export default function SongCard({ song, index = 0 }) {
           display: 'flex', flexWrap: 'wrap', gap: '8px 14px', justifyContent: 'space-between', alignItems: 'center',
           color: 'var(--text3)', fontSize: 11,
         }}>
-          <span>🎚 {(song.tempo || 0).toFixed(0)} BPM</span>
-          <span>🔉 {(song.loudness ?? 0).toFixed(1)} dB</span>
+          {hasAudioFeatures && (
+            <>
+              <span>🎚 {(song.tempo || 0).toFixed(0)} BPM</span>
+              <span>🔉 {(song.loudness ?? 0).toFixed(1)} dB</span>
+            </>
+          )}
           {song.preview_url ? (
             <a
               href={song.preview_url}

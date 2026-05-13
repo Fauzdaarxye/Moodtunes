@@ -125,6 +125,20 @@ POPULARITY_FIT_WEIGHT = 0.45
 POPULARITY_RANK_WEIGHT = 0.55
 POPULAR_MODE_MIN_POPULARITY = 35
 POPULAR_MODE_STRONG_POPULARITY = 50
+SEARCH_ONLY_MIN_POPULARITY = 55
+SEARCH_ONLY_RELAXED_POPULARITY = 40
+
+LOW_QUALITY_TERMS = (
+    "karaoke", "tribute", "cover version", "made famous by", "sound alike",
+    "instrumental version", "workout remix", "8d audio", "sped up", "slowed",
+)
+
+MOOD_BLOCK_TERMS = {
+    "Energetic": ("meditation", "yoga", "sleep", "study", "relaxing", "calm"),
+    "Happy": ("sad", "sleep", "meditation"),
+    "Sad": ("workout", "party anthem", "club mix"),
+    "Calm": ("workout", "pump up", "party anthem"),
+}
 
 # ── Expanded query pools ──────────────────────────────────────────────────────
 # More genre-diverse queries → higher quality songs, not just niche unknowns.
@@ -143,6 +157,10 @@ MOOD_CONFIG = {
             "hot 100 happy songs", "viral feel good songs", "tiktok happy songs",
             "pop hits summer", "party anthems",
         ],
+        "popular_queries": [
+            "feel good hits", "happy pop hits", "upbeat pop hits",
+            "summer hits", "dance pop hits", "good mood songs",
+        ],
     },
     "Sad": {
         "queries": [
@@ -157,6 +175,10 @@ MOOD_CONFIG = {
             "sad 90s songs", "emotional 2000s ballads", "sad 2010s hits",
             # Trending
             "viral sad songs tiktok", "sad songs trending", "rainy day music",
+        ],
+        "popular_queries": [
+            "sad pop hits", "breakup hits", "heartbreak songs",
+            "emotional pop songs", "sad acoustic hits", "sad songs",
         ],
     },
     "Energetic": {
@@ -173,6 +195,11 @@ MOOD_CONFIG = {
             # Trending
             "tiktok workout songs", "viral dance songs 2024", "festival anthems",
         ],
+        "popular_queries": [
+            "workout hits", "gym hits", "pump up songs", "party hits",
+            "dance hits", "edm hits", "running songs", "club hits",
+            "hip hop workout hits", "pop dance hits",
+        ],
     },
     "Calm": {
         "queries": [
@@ -188,6 +215,10 @@ MOOD_CONFIG = {
             # Trending
             "viral chill songs", "coffee shop music", "focus music trending",
             "calm bedroom pop",
+        ],
+        "popular_queries": [
+            "calm pop hits", "chill hits", "relaxing songs",
+            "soft pop hits", "acoustic hits", "mellow songs",
         ],
     },
 }
@@ -302,6 +333,26 @@ def bulk_audio_features(track_ids: list) -> dict:
         print(f"audio_features error: {e}")
         return {}
 
+def _lower_track_text(track: dict) -> str:
+    artist_names = " ".join(a.get("name", "") for a in track.get("artists", []))
+    album_name = track.get("album", {}).get("name", "")
+    return f"{track.get('name', '')} {artist_names} {album_name}".lower()
+
+def is_listenable_search_result(track: dict, mood: str, relaxed: bool = False) -> bool:
+    popularity = track.get("popularity", 0)
+    min_popularity = SEARCH_ONLY_RELAXED_POPULARITY if relaxed else SEARCH_ONLY_MIN_POPULARITY
+    if popularity < min_popularity:
+        return False
+
+    text = _lower_track_text(track)
+    if any(term in text for term in LOW_QUALITY_TERMS):
+        return False
+    if any(term in text for term in MOOD_BLOCK_TERMS.get(mood, ())):
+        return False
+    if "various artists" in text and popularity < POPULAR_MODE_STRONG_POPULARITY:
+        return False
+    return True
+
 # ── format_track ─────────────────────────────────────────────────────────────
 def format_track(track: dict, af: dict, mood: str, confidence: float = 0,
                  profile_af=None, fit_score: float = 0.0):
@@ -336,15 +387,17 @@ def format_track(track: dict, af: dict, mood: str, confidence: float = 0,
 
 # ── Spotify search helpers ────────────────────────────────────────────────────
 SPOTIFY_MAX_OFFSET = 950
-SPOTIFY_POPULAR_MAX_OFFSET = 250
+SPOTIFY_POPULAR_MAX_OFFSET = 40
 SPOTIFY_PAGE_SIZE  = 10
 MAX_SEARCH_PAGES   = 14   # fetch more pages so we have a richer pool to rank
 
 def _search_random_page(query: str, market: str = "US", popular_bias: bool = True) -> list:
     if sp is None:
         return []
-    max_offset = SPOTIFY_POPULAR_MAX_OFFSET if popular_bias else SPOTIFY_MAX_OFFSET
-    offset = random.randint(0, max_offset)
+    if popular_bias:
+        offset = random.choice([0, 0, 0, 10, 10, 20, 30, SPOTIFY_POPULAR_MAX_OFFSET])
+    else:
+        offset = random.randint(0, SPOTIFY_MAX_OFFSET)
     try:
         results = sp.search(
             q=query, type="track",
@@ -390,7 +443,8 @@ def fetch_songs_for_mood(mood: str, limit: int, feature_targets=None,
         mood, MOOD_DEFAULT_FEATURES["Happy"]
     )
 
-    queries = list(MOOD_CONFIG[mood]["queries"])
+    query_key = "popular_queries" if (not rare and not _AUDIO_FEATURES_AVAILABLE) else "queries"
+    queries = list(MOOD_CONFIG[mood].get(query_key, MOOD_CONFIG[mood]["queries"]))
     random.shuffle(queries)
 
     seen_ids    = set()
@@ -432,9 +486,11 @@ def fetch_songs_for_mood(mood: str, limit: int, feature_targets=None,
                     else:
                         relaxed_af_pool.append(candidate)
             else:
-                if rare or pop >= POPULAR_MODE_MIN_POPULARITY:
+                if rare:
                     raw_pool.append((t, pop))
-                else:
+                elif is_listenable_search_result(t, mood):
+                    raw_pool.append((t, pop))
+                elif is_listenable_search_result(t, mood, relaxed=True):
                     relaxed_raw_pool.append((t, pop))
 
         # Stop early once we have plenty of audio-feature candidates
@@ -475,7 +531,7 @@ def fetch_songs_for_mood(mood: str, limit: int, feature_targets=None,
     raw_pool.sort(key=lambda x: x[1], reverse=(not rare))
     out = []
     for t, _ in raw_pool[:limit]:
-        out.append(format_track(t, {}, mood, 0, profile_af=profile, fit_score=0.0))
+        out.append(format_track(t, {}, mood, 0, profile_af=None, fit_score=0.0))
     return out
 
 # ── routes ────────────────────────────────────────────────────────────────────

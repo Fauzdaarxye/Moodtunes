@@ -35,6 +35,7 @@ export default function ResultsPage({
   }, [initialSongs, initialProfile, mood]);
 
   const m = MOOD_META[mood] || MOOD_META.Happy;
+  const analyzedSongs = songs.filter(s => s.feature_source === 'spotify');
 
   const filtered = songs.filter(s =>
     (s.track_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -123,9 +124,8 @@ export default function ResultsPage({
             Audio feature profile
           </div>
           <p style={{ color: 'var(--text3)', fontSize: 12, marginBottom: 16, lineHeight: 1.55 }}>
-            Values sent to <code style={{ fontSize: 11 }}>/recommend</code> (valence, energy, danceability, tempo, plus
-            acousticness and loudness from mood defaults). They appear on each card; when Spotify does not return track-level
-            analysis, this profile is used so Sad and other moods still show meaningful numbers.
+            Target values sent to <code style={{ fontSize: 11 }}>/recommend</code>. When Spotify track-level audio analysis
+            is unavailable, recommendations are ranked by popularity and these values are not copied onto song cards.
           </p>
           <div style={{
             display: 'grid',
@@ -149,25 +149,38 @@ export default function ResultsPage({
         </div>
       )}
 
-      {/* Stats bar (list averages — match profile when tracks use profile source) */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))',
-        gap: 14, marginBottom: 44, animation: 'fadeUp 0.5s ease 0.08s both',
-      }}>
-        {[
-          { label: 'Avg Valence',      val: `${(avg(songs,'valence') * 100).toFixed(0)}%` },
-          { label: 'Avg Energy',       val: `${(avg(songs,'energy') * 100).toFixed(0)}%`  },
-          { label: 'Avg Danceability', val: `${(avg(songs,'danceability') * 100).toFixed(0)}%` },
-          { label: 'Avg Tempo',        val: `${avg(songs,'tempo').toFixed(0)} BPM`        },
-        ].map(s => (
-          <div key={s.label} className="glass" style={{ padding: '18px 16px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 24, color: m.color }}>
-              {s.val}
+      {analyzedSongs.length > 0 ? (
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))',
+          gap: 14, marginBottom: 44, animation: 'fadeUp 0.5s ease 0.08s both',
+        }}>
+          {[
+            { label: 'Avg Valence',      val: `${(avg(analyzedSongs,'valence') * 100).toFixed(0)}%` },
+            { label: 'Avg Energy',       val: `${(avg(analyzedSongs,'energy') * 100).toFixed(0)}%`  },
+            { label: 'Avg Danceability', val: `${(avg(analyzedSongs,'danceability') * 100).toFixed(0)}%` },
+            { label: 'Avg Tempo',        val: `${avg(analyzedSongs,'tempo').toFixed(0)} BPM`        },
+          ].map(s => (
+            <div key={s.label} className="glass" style={{ padding: '18px 16px', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 24, color: m.color }}>
+                {s.val}
+              </div>
+              <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 4 }}>{s.label}</div>
             </div>
-            <div style={{ color: 'var(--text3)', fontSize: 11, marginTop: 4 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="glass" style={{
+          padding: '16px 18px',
+          marginBottom: 34,
+          color: 'var(--text3)',
+          fontSize: 13,
+          lineHeight: 1.55,
+          border: `1px solid ${m.color}33`,
+        }}>
+          Spotify audio analysis is unavailable for this API account, so this list is using popular Spotify search results
+          instead of fake audio-feature averages.
+        </div>
+      )}
 
       {/* Search */}
       <div style={{ marginBottom: 32, animation: 'fadeUp 0.5s ease 0.12s both' }}>
