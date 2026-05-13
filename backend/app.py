@@ -1,5 +1,5 @@
 """
-app.py – Moodtunes Backend API  (upgraded)
+app.py – Moodspot Backend API  (upgraded)
 
 Key changes vs original:
   1. NEARBY MATCHING – songs do not need exact audio-feature percentages.
@@ -538,7 +538,7 @@ def fetch_songs_for_mood(mood: str, limit: int, feature_targets=None,
 @app.route("/")
 def root():
     return jsonify({
-        "app":       "Moodtunes API",
+        "app":       "Moodspot API",
         "status":    "running",
         "model":     metrics["model_name"] if metrics else "not loaded",
         "accuracy":  metrics["accuracy"]   if metrics else None,
@@ -707,5 +707,5 @@ def moods():
     })
 
 if __name__ == "__main__":
-    print("🎵 Moodtunes API starting on http://localhost:5000")
+    print("🎵 Moodspot API starting on http://localhost:5000")
     app.run(debug=True, port=5000, host="0.0.0.0")

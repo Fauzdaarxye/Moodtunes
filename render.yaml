@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: moodtunes-backend
+    name: moodspot-backend
     runtime: python
     rootDir: backend
     buildCommand: >

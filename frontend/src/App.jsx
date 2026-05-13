@@ -6,9 +6,13 @@ import ResultsPage from './pages/ResultsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import LoginPage from './pages/LoginPage';
 
+const USER_STORAGE_KEY = 'moodspot-user';
+const LEGACY_USER_STORAGE_KEY = 'moodtunes-user';
+
 const loadSavedUser = () => {
   try {
-    return JSON.parse(localStorage.getItem('moodtunes-user')) || null;
+    const saved = localStorage.getItem(USER_STORAGE_KEY) || localStorage.getItem(LEGACY_USER_STORAGE_KEY);
+    return JSON.parse(saved) || null;
   } catch {
     return null;
   }
@@ -55,13 +59,15 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
 
-    localStorage.setItem('moodtunes-user', JSON.stringify(nextUser));
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
+    localStorage.removeItem(LEGACY_USER_STORAGE_KEY);
     setUser(nextUser);
     navigate('mood');
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('moodtunes-user');
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_USER_STORAGE_KEY);
     setUser(null);
     navigate('home');
   };

@@ -39,7 +39,7 @@ export default function Navbar({ page, navigate, user, onSignOut }) {
           fontFamily: 'Syne', fontWeight: 800, fontSize: 20,
           color: 'var(--text)', letterSpacing: '-0.5px',
         }}>
-          Mood<span style={{ color: 'var(--green)' }}>tunes</span>
+          Mood<span style={{ color: 'var(--green)' }}>spot</span>
         </span>
       </button>
 

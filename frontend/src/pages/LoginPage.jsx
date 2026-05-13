@@ -58,7 +58,7 @@ export default function LoginPage({ onAuth, navigate }) {
 
   const continueWithGmail = () => {
     onAuth({
-      name: 'Moodtunes Listener',
+      name: 'Moodspot Listener',
       email: 'listener@gmail.com',
       provider: 'gmail',
     });
@@ -133,7 +133,7 @@ export default function LoginPage({ onAuth, navigate }) {
               marginBottom: 34,
             }}
           >
-            Sign up with Gmail to create a private Moodtunes profile for faster
+            Sign up with Gmail to create a private Moodspot profile for faster
             access to recommendations, saved moods, and listening patterns.
           </p>
 

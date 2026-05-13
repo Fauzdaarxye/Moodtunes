@@ -1,4 +1,4 @@
-# 🎵 Moodtunes — Mood-Based Music Recommender
+# 🎵 Moodspot — Mood-Based Music Recommender
 
 ML-powered music recommender using a Random Forest classifier + live Spotify API.
 
