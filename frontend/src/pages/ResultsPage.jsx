@@ -21,6 +21,7 @@ export default function ResultsPage({
   audioFeaturesProfile: initialProfile,
   navigate,
   recommendLimit = 10,
+  rare = false,
 }) {
   const [songs,   setSongs]   = useState(initialSongs || []);
   const [profile, setProfile] = useState(initialProfile || null);
@@ -47,6 +48,7 @@ export default function ResultsPage({
       const params = new URLSearchParams({
         mood,
         limit: String(recommendLimit),
+        rare: String(rare),
       });
       if (profile) {
         ['valence', 'energy', 'danceability', 'tempo', 'acousticness', 'loudness'].forEach(k => {

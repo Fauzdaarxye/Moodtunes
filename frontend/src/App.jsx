@@ -22,6 +22,7 @@ export default function App() {
   const [user, setUser] = useState(loadSavedUser);
   /** Last mood-page request size; refresh on results must not shrink to current list length. */
   const [recommendLimit, setRecommendLimit] = useState(10);
+  const [rareMode, setRareMode] = useState(false);
 
   const navigate = (to, data = {}) => {
     if (to === 'home') {
@@ -35,6 +36,10 @@ export default function App() {
       const n = parseInt(String(data.recommendLimit), 10);
       if (!Number.isNaN(n)) setRecommendLimit(Math.max(1, Math.min(30, n)));
     }
+    if ('rare' in data) {
+      setRareMode(Boolean(data.rare));
+    }
+    // ignore popularityThreshold changes — revert to original behaviour
     if ('audioFeaturesProfile' in data) {
       setAudioFeaturesProfile(data.audioFeaturesProfile ?? null);
     }
@@ -73,6 +78,7 @@ export default function App() {
             songs={songs}
             audioFeaturesProfile={audioFeaturesProfile}
             recommendLimit={recommendLimit}
+            rare={rareMode}
             navigate={navigate}
           />
         )}
